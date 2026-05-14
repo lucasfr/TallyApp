@@ -20,6 +20,32 @@ document.addEventListener('DOMContentLoaded', () => {
   buildJuryForm();
 });
 
+// ── Artist image HTML helper ──────────────────────────────────
+// Returns the .artist-img-wrap block with glimmer overlay,
+// falling back to a flag placeholder if no image path is set.
+function artistImgHtml(c, idx, size = 56) {
+  const delay = `${((idx * 0.9) % 6).toFixed(1)}s`;
+  if (c.image) {
+    return `
+      <div class="artist-img-wrap" style="width:${size}px;height:${size}px">
+        <img src="${c.image}" alt="${c.country}" loading="lazy"
+             onerror="this.parentElement.innerHTML=artistPlaceholderHtml('${c.flag}','${c.country}')">
+        <div class="artist-img-glimmer" style="--glimmer-delay:${delay}"></div>
+      </div>`;
+  }
+  return `
+    <div class="artist-img-wrap" style="width:${size}px;height:${size}px">
+      ${artistPlaceholderHtml(c.flag, c.country)}
+    </div>`;
+}
+
+function artistPlaceholderHtml(flag, country) {
+  return `<div class="artist-placeholder">
+    <div class="ph-flag">${flag}</div>
+    <div class="ph-label">${country.substring(0,3).toUpperCase()}</div>
+  </div>`;
+}
+
 // ── Build jury entry form from config ────────────────────────
 function buildJuryForm() {
   const list = document.getElementById('juryList');
@@ -28,9 +54,9 @@ function buildJuryForm() {
     const row = document.createElement('div');
     row.className = 'country-entry-row';
     row.innerHTML = `
-      <div class="entry-flag">${c.flag}</div>
+      ${artistImgHtml(c, i, 52)}
       <div class="entry-info">
-        <div class="entry-country">${c.country}</div>
+        <div class="entry-country">${c.flag} ${c.country}</div>
         <div class="entry-artist">${c.artist}</div>
       </div>
       <div class="score-input-group">
@@ -265,7 +291,7 @@ function renderLeaderboard() {
     return `
       <div class="lb-row ${rankClass}" style="animation-delay:${i * 0.03}s">
         <div class="lb-rank">${rank}</div>
-        <div class="lb-flag">${c.flag}</div>
+        ${artistImgHtml(c, i, 56)}
         <div class="lb-info">
           <div class="lb-country">${c.country}</div>
           <div class="lb-artist">${c.artist}</div>

@@ -188,7 +188,7 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
   letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 5px;
 }
 
-/* ── COUNTRY ENTRY ROW (setup) ────────────────────────────── */
+/* ── COUNTRY ENTRY ROW (setup / jury form) ────────────────── */
 .country-entry-row {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.4);
@@ -211,6 +211,59 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
   font-size: 12px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.5px; color: var(--text-dim); width: 30px; flex-shrink: 0;
 }
+
+/* ── ARTIST IMAGE + GLIMMER ───────────────────────────────── */
+.artist-img-wrap {
+  width: 56px; height: 56px; border-radius: var(--radius-xs);
+  overflow: hidden; flex-shrink: 0;
+  background: rgba(255,255,255,0.5); border: 1px solid var(--glass-border);
+  box-shadow: 0 1px 4px var(--shadow); position: relative;
+}
+.artist-img-wrap img {
+  width: 100%; height: 100%; object-fit: cover;
+  object-position: center top; display: block; transition: transform 0.3s;
+}
+.lb-row:hover .artist-img-wrap img { transform: scale(1.06); }
+
+/* Glimmer sweep — fires every ~6s */
+.artist-img-glimmer {
+  position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; z-index: 2; overflow: hidden;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255,255,255,0.38) 48%,
+    rgba(255,255,255,0.55) 50%,
+    rgba(255,255,255,0.38) 52%,
+    transparent 70%
+  );
+  background-size: 300% 100%;
+  background-position: 200% 0;
+  animation: glimmer-sweep 6s ease-in-out infinite;
+  animation-delay: var(--glimmer-delay, 0s);
+}
+@keyframes glimmer-sweep {
+  0%, 72% { background-position: 200% 0; opacity: 0; }
+  75%      { opacity: 1; }
+  90%      { background-position: -100% 0; opacity: 0; }
+  100%     { background-position: -100% 0; opacity: 0; }
+}
+
+/* Placeholder shown when no image path */
+.artist-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: linear-gradient(135deg, rgba(137,212,255,0.2), rgba(254,158,199,0.15));
+  position: relative; overflow: hidden;
+}
+.artist-placeholder::after {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.25) 50%, transparent 60%);
+  animation: shimmer 2.8s infinite;
+}
+@keyframes shimmer { 0% { transform: translateX(-100%) translateY(-100%); } 100% { transform: translateX(100%) translateY(100%); } }
+.ph-flag  { font-size: 1.4rem; line-height: 1; position: relative; z-index: 1; }
+.ph-label { font-size: 9px; color: var(--text-dim); letter-spacing: 0.5px; position: relative; z-index: 1; font-weight: 600; text-transform: uppercase; }
 
 /* ── NOTICE ───────────────────────────────────────────────── */
 .notice {
@@ -410,4 +463,5 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
   .blob-3 { width: 260px; height: 220px; filter: blur(60px); }
   .summary-stats { grid-template-columns: repeat(2, 1fr); }
   .stat-num { font-size: 1.1rem; }
+  .artist-img-wrap { width: 48px; height: 48px; }
 }
