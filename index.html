@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tally App · Eurovision 2026</title>
+<meta name="description" content="Follow the Grand Final scoreboard live as the televote is announced.">
+<link rel="icon" href="../WatchParty/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="toast" id="toast"></div>
+
+<div class="container">
+
+  <header>
+    <div class="header-logo">🏆 Tally App</div>
+    <div class="header-sub">Eurovision 2026 Grand Final</div>
+    <div class="phase-badge" id="phaseBadge">Setup</div>
+  </header>
+
+  <!-- ═══════════ SETUP PANEL ═══════════ -->
+  <div id="setupPanel">
+
+    <div class="glass-card">
+      <div class="section-title">
+        <span class="section-title-accent"></span>
+        Jury scores
+      </div>
+      <p class="notice" style="margin-bottom:14px">
+        Enter each country's total jury points, then lock them in to start the live televote tracker.
+      </p>
+
+      <!-- Test data button -->
+      <div style="margin-bottom:14px">
+        <button class="btn btn-outline btn-sm" onclick="fillTestData()">
+          🧪 Fill test data
+        </button>
+      </div>
+
+      <div id="juryList"></div>
+
+      <button class="btn btn-blue btn-full" style="margin-top:16px" onclick="lockJuryScores()">
+        Lock jury scores &amp; start televote →
+      </button>
+    </div>
+
+  </div><!-- /setupPanel -->
+
+  <!-- ═══════════ TALLY PANEL ═══════════ -->
+  <div id="tallyPanel" style="display:none">
+
+    <!-- Status / progress bar -->
+    <div class="status-bar">
+      <div class="status-top">
+        <div class="tv-counter">
+          <div class="tv-counter-icon">📺</div>
+          <div class="tv-counter-text">
+            Televote: <span id="tvCountDone">0</span> / <span id="tvCountTotal">0</span> announced
+          </div>
+        </div>
+        <div class="status-pill">
+          <div class="status-dot live" id="statusDot"></div>
+          <span id="statusText">Live</span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progressBar" style="width:0%"></div>
+      </div>
+      <div class="summary-stats">
+        <div class="stat-card">
+          <div class="stat-num" id="statLeader">—</div>
+          <div class="stat-label">Leader</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statLeaderPts">0</div>
+          <div class="stat-label">Top pts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statRemain">0</div>
+          <div class="stat-label">To go</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add televote points -->
+    <div class="glass-card">
+      <div class="section-title">
+        <span class="section-title-accent" style="background:var(--blue)"></span>
+        Add televote points
+      </div>
+      <div class="tv-input-row">
+        <select class="tv-select" id="tvCountrySelect"></select>
+        <input type="number" min="0" max="999" placeholder="Pts"
+               class="tv-pts-input score-field" id="tvPtsInput" inputmode="numeric"
+               style="width:90px">
+        <button class="btn btn-blue" onclick="addTVPoints()">Add</button>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="lb-header">
+      <div class="section-title" style="margin-bottom:0">
+        <span class="section-title-accent" style="background:var(--pink)"></span>
+        Live leaderboard
+      </div>
+      <div class="view-tabs">
+        <div class="view-tab active" id="tab-total" onclick="switchTab('total')">Total</div>
+        <div class="view-tab"        id="tab-jury"  onclick="switchTab('jury')">Jury</div>
+        <div class="view-tab"        id="tab-tv"    onclick="switchTab('tv')">Tele</div>
+      </div>
+    </div>
+
+    <div class="lb-wrap" id="leaderboard"></div>
+
+    <div style="text-align:center; margin-top:22px">
+      <button class="btn btn-outline btn-sm" onclick="resetApp()">↩ Reset / start over</button>
+    </div>
+
+  </div><!-- /tallyPanel -->
+
+</div><!-- /container -->
+
+<script src="app.js"></script>
+</body>
+</html>
