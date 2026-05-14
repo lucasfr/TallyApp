@@ -96,13 +96,45 @@ html, body {
 /* ── HEADER ───────────────────────────────────────────────── */
 header { text-align: center; padding: 36px 0 22px; }
 
+/* Logo wrapper — needed so the glimmer pseudo-element can be
+   clipped to the text without fighting background-clip: text  */
+.header-logo-wrap {
+  display: inline-block;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+/* The visible gradient text */
 .header-logo {
   font-family: var(--font-head);
-  font-size: 2.4rem; font-weight: 700;
-  background: linear-gradient(135deg, var(--pink), var(--blue));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-size: 3.2rem; font-weight: 700;
+  letter-spacing: -0.5px; line-height: 1.1;
+  /* Animated gradient: base pink→blue with a bright highlight band
+     that slides across left-to-right every ~5s               */
+  background: linear-gradient(
+    110deg,
+    var(--pink)       0%,
+    var(--blue-light) 25%,
+    #ffffff           38%,
+    var(--blue-light) 44%,
+    var(--blue)       60%,
+    var(--pink)       80%,
+    var(--blue)       100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 5px; letter-spacing: -0.5px;
+  animation: logo-glimmer 5s ease-in-out infinite;
+  filter: drop-shadow(0 2px 12px rgba(68,172,255,0.18));
+}
+
+@keyframes logo-glimmer {
+  0%   { background-position: 100% 0; }
+  40%  { background-position: 100% 0; }
+  60%  { background-position:   0% 0; }
+  100% { background-position:   0% 0; }
 }
 
 .header-sub {
@@ -225,7 +257,6 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
 }
 .lb-row:hover .artist-img-wrap img { transform: scale(1.06); }
 
-/* Glimmer sweep — fires every ~6s */
 .artist-img-glimmer {
   position: absolute; inset: 0; border-radius: inherit;
   pointer-events: none; z-index: 2; overflow: hidden;
@@ -249,7 +280,6 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
   100%     { background-position: -100% 0; opacity: 0; }
 }
 
-/* Placeholder shown when no image path */
 .artist-placeholder {
   width: 100%; height: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -456,7 +486,7 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
 @media (max-width: 560px) {
   html { font-size: 16px; }
   header { padding: 24px 0 16px; }
-  .header-logo { font-size: 2rem; }
+  .header-logo { font-size: 2.4rem; }
   .glass-card { padding: 18px 16px; }
   .blob-1 { width: 360px; height: 320px; }
   .blob-2 { width: 320px; height: 320px; }
