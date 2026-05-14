@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#FE9EC7"/>
+      <stop offset="45%"  stop-color="#89D4FF"/>
+      <stop offset="100%" stop-color="#44ACFF"/>
+    </linearGradient>
+  </defs>
+  <!-- Cup body -->
+  <path d="M28 18 h44 l-8 38 a6 6 0 0 1-6 5 h-16 a6 6 0 0 1-6-5 Z" fill="url(#g)"/>
+  <!-- Handles -->
+  <path d="M28 22 h-8 a10 10 0 0 0 0 20 h8" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M72 22 h8 a10 10 0 0 1 0 20 h-8"  fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/>
+  <!-- Stem -->
+  <rect x="44" y="61" width="12" height="14" rx="2" fill="url(#g)"/>
+  <!-- Base -->
+  <rect x="32" y="75" width="36" height="7" rx="3.5" fill="url(#g)"/>
+</svg>
