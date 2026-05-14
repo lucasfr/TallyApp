@@ -4,9 +4,6 @@
 // ============================================================
 
 // ── Eurovision scoring constants ─────────────────────────────
-// Each voting bloc (country + Rest of World) awards 12/10/8/7/6/5/4/3/2/1.
-// Total points distributed by one bloc = 12+10+8+7+6+5+4+3+2+1 = 58.
-// Total blocs = countries.length + 1 (Rest of the World).
 const PTS_PER_BLOC = 58; // 12+10+8+7+6+5+4+3+2+1
 
 // ── State ────────────────────────────────────────────────────
@@ -15,14 +12,91 @@ let prevRanks  = {};
 let currentTab = 'total';
 let phase      = 'setup';
 
+// ── Persistence ──────────────────────────────────────────────
+const STORAGE_KEY = 'tally-app-2026';
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      countries,
+      currentTab,
+      phase,
+      rowDone: window._rowDone || false,
+      rowPts:  window._rowPts  || 0,
+    }));
+  } catch (e) {
+    console.warn('Could not save state:', e);
+  }
+}
+
+function clearState() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+}
+
 // ── Boot ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  buildJuryForm();
+  restoreState();
 });
 
+function restoreState() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) {}
+
+  if (!saved || !saved.countries || !saved.countries.length) {
+    // Nothing saved — show jury setup form as normal
+    buildJuryForm();
+    return;
+  }
+
+  // Restore state
+  countries      = saved.countries;
+  currentTab     = saved.currentTab  || 'total';
+  phase          = saved.phase       || 'setup';
+  window._rowDone = saved.rowDone    || false;
+  window._rowPts  = saved.rowPts     || 0;
+
+  if (phase === 'setup') {
+    // Jury form was partially filled — rebuild and re-populate inputs
+    buildJuryForm();
+    countries.forEach((c, i) => {
+      const el = document.getElementById(`jury-${i}`);
+      if (el && c.jury) el.value = c.jury;
+    });
+  } else {
+    // Tally phase (or done) — jump straight to tally panel
+    document.getElementById('setupPanel').style.display = 'none';
+    document.getElementById('tallyPanel').style.display = 'block';
+
+    const totalBlocs = countries.length + 1;
+    const countryDone = countries.filter(c => c.tvDone).length;
+    const rowDone     = window._rowDone ? 1 : 0;
+    const totalDone   = countryDone + rowDone;
+
+    document.getElementById('tvCountTotal').textContent = totalBlocs;
+    document.getElementById('tvCountDone').textContent  = totalDone;
+    document.getElementById('progressBar').style.width  =
+      Math.round(totalDone / totalBlocs * 100) + '%';
+
+    if (phase === 'done') {
+      document.getElementById('phaseBadge').textContent = '🏆 Final Results';
+      document.getElementById('statusDot').className    = 'status-dot done';
+      document.getElementById('statusText').textContent = 'Complete';
+    } else {
+      document.getElementById('phaseBadge').textContent = '📺 Televote Live';
+    }
+
+    // Restore active tab
+    ['total','jury','tv'].forEach(t => {
+      document.getElementById(`tab-${t}`).classList.toggle('active', t === currentTab);
+    });
+
+    buildTVSelect();
+    renderLeaderboard();
+    updateStats();
+  }
+}
+
 // ── Artist image HTML helper ──────────────────────────────────
-// Returns the .artist-img-wrap block with glimmer overlay,
-// falling back to a flag placeholder if no image path is set.
 function artistImgHtml(c, idx, size = 56) {
   const delay = `${((idx * 0.9) % 6).toFixed(1)}s`;
   if (c.image) {
@@ -62,10 +136,29 @@ function buildJuryForm() {
       <div class="score-input-group">
         <div class="score-label-inline">Jury</div>
         <input type="number" min="0" max="999" class="score-field"
-               id="jury-${i}" placeholder="0" inputmode="numeric">
+               id="jury-${i}" placeholder="0" inputmode="numeric"
+               oninput="saveJuryDraft()">
       </div>`;
     list.appendChild(row);
   });
+}
+
+// Save jury inputs as a draft even before locking
+function saveJuryDraft() {
+  // Build a partial countries array just for draft storage
+  const draft = TALLY_CONFIG.COUNTRIES.map((c, i) => {
+    const el = document.getElementById(`jury-${i}`);
+    return { ...c, jury: parseInt(el?.value) || 0, tv: 0, tvDone: false };
+  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      countries: draft,
+      currentTab,
+      phase: 'setup',
+      rowDone: false,
+      rowPts:  0,
+    }));
+  } catch (e) {}
 }
 
 // ── Fill test data ────────────────────────────────────────────
@@ -75,6 +168,7 @@ function fillTestData() {
     const el = document.getElementById(`jury-${i}`);
     if (el) el.value = scores[c.country] ?? 0;
   });
+  saveJuryDraft();
   showToast('Test jury scores filled in ✅', 'success');
 }
 
@@ -88,11 +182,12 @@ function lockJuryScores() {
   }));
 
   phase = 'tally';
+  saveState();
+
   document.getElementById('setupPanel').style.display = 'none';
   document.getElementById('tallyPanel').style.display = 'block';
-  document.getElementById('phaseBadge').textContent = '📺 Televote Live';
+  document.getElementById('phaseBadge').textContent   = '📺 Televote Live';
 
-  // Total blocs = countries + Rest of the World
   const totalBlocs = countries.length + 1;
   document.getElementById('tvCountTotal').textContent = totalBlocs;
 
@@ -102,8 +197,7 @@ function lockJuryScores() {
   showToast('Jury scores locked! Televote begins 🎉', 'success');
 }
 
-// ── Total points still to be distributed from pending blocs ──
-// = PTS_PER_BLOC (58) × remaining blocs
+// ── Total points still to be distributed ─────────────────────
 function maxPtsStillAvailable() {
   const pendingCountries = countries.filter(c => !c.tvDone).length;
   const rowDone          = window._rowDone || false;
@@ -121,7 +215,7 @@ function buildTVSelect() {
   if (pending.length === 0 && (window._rowDone || false)) {
     sel.innerHTML = '<option value="">All televotes entered!</option>';
     updateNeedsToLead();
-    endShow();
+    if (phase !== 'done') endShow();
     return;
   }
 
@@ -132,7 +226,6 @@ function buildTVSelect() {
     sel.appendChild(opt);
   });
 
-  // Rest of the World option (always last)
   if (!(window._rowDone || false)) {
     const opt = document.createElement('option');
     opt.value = 'row';
@@ -168,7 +261,6 @@ function addTVPoints() {
 
   document.getElementById('tvPtsInput').value = '';
 
-  // Update counter
   const countryDone = countries.filter(c => c.tvDone).length;
   const rowDone     = window._rowDone ? 1 : 0;
   const totalDone   = countryDone + rowDone;
@@ -177,6 +269,7 @@ function addTVPoints() {
   document.getElementById('progressBar').style.width =
     Math.round(totalDone / totalBlocs * 100) + '%';
 
+  saveState();
   buildTVSelect();
   renderLeaderboard();
   updateStats();
@@ -206,7 +299,6 @@ function updateNeedsToLead() {
   const leaderTotal   = leader.jury + leader.tv;
   const maxAvail      = maxPtsStillAvailable();
 
-  // Already leading
   if (selected.country === leader.country) {
     hint.style.display = 'flex';
     hint.innerHTML = `<span class="needs-lead-icon">👑</span>
@@ -238,6 +330,7 @@ function switchTab(tab) {
   ['total','jury','tv'].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
   });
+  saveState();
   renderLeaderboard();
 }
 
@@ -315,13 +408,14 @@ function updateStats() {
   }
   const pendingCountries = countries.filter(c => !c.tvDone).length;
   const rowDone          = window._rowDone || false;
-  document.getElementById('statRemain').textContent  = pendingCountries + (rowDone ? 0 : 1);
-  document.getElementById('statMaxPts').textContent  = maxPtsStillAvailable();
+  document.getElementById('statRemain').textContent = pendingCountries + (rowDone ? 0 : 1);
+  document.getElementById('statMaxPts').textContent = maxPtsStillAvailable();
 }
 
 // ── Show is over ──────────────────────────────────────────────
 function endShow() {
   phase = 'done';
+  saveState();
   document.getElementById('phaseBadge').textContent = '🏆 Final Results';
   document.getElementById('statusDot').className    = 'status-dot done';
   document.getElementById('statusText').textContent = 'Complete';
@@ -333,6 +427,9 @@ function endShow() {
 // ── Reset ─────────────────────────────────────────────────────
 function resetApp() {
   if (!confirm('Reset everything and start over?')) return;
+
+  clearState();
+
   countries       = [];
   prevRanks       = {};
   currentTab      = 'total';
