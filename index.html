@@ -38,7 +38,6 @@
         Enter each country's total jury points, then lock them in to start the live televote tracker.
       </p>
 
-      <!-- Test data button -->
       <div style="margin-bottom:14px">
         <button class="btn btn-outline btn-sm" onclick="fillTestData()">
           🧪 Fill test data
@@ -85,7 +84,11 @@
         </div>
         <div class="stat-card">
           <div class="stat-num" id="statRemain">0</div>
-          <div class="stat-label">To go</div>
+          <div class="stat-label">Blocs left</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statMaxPts">0</div>
+          <div class="stat-label">Pts avail.</div>
         </div>
       </div>
     </div>
@@ -97,12 +100,15 @@
         Add televote points
       </div>
       <div class="tv-input-row">
-        <select class="tv-select" id="tvCountrySelect"></select>
+        <select class="tv-select" id="tvCountrySelect" onchange="updateNeedsToLead()"></select>
         <input type="number" min="0" max="999" placeholder="Pts"
                class="tv-pts-input score-field" id="tvPtsInput" inputmode="numeric"
                style="width:90px">
         <button class="btn btn-blue" onclick="addTVPoints()">Add</button>
       </div>
+
+      <!-- Needs-to-lead hint — shown when a country is selected -->
+      <div id="needsToLeadHint" class="needs-lead-hint" style="display:none"></div>
     </div>
 
     <!-- Leaderboard -->

@@ -3,11 +3,17 @@
 //  Reads config from config.js (TALLY_CONFIG).
 // ============================================================
 
+// ── Eurovision scoring constants ─────────────────────────────
+// Each voting bloc (country + Rest of World) awards 12/10/8/7/6/5/4/3/2/1.
+// Total points distributed by one bloc = 12+10+8+7+6+5+4+3+2+1 = 58.
+// Total blocs = countries.length + 1 (Rest of the World).
+const PTS_PER_BLOC = 58; // 12+10+8+7+6+5+4+3+2+1
+
 // ── State ────────────────────────────────────────────────────
-let countries  = [];   // working copy built from TALLY_CONFIG.COUNTRIES
-let prevRanks  = {};   // rank snapshot before last update (for change badges)
-let currentTab = 'total'; // 'total' | 'jury' | 'tv'
-let phase      = 'setup'; // 'setup' | 'jury' | 'tally' | 'done'
+let countries  = [];
+let prevRanks  = {};
+let currentTab = 'total';
+let phase      = 'setup';
 
 // ── Boot ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,7 +65,10 @@ function lockJuryScores() {
   document.getElementById('setupPanel').style.display = 'none';
   document.getElementById('tallyPanel').style.display = 'block';
   document.getElementById('phaseBadge').textContent = '📺 Televote Live';
-  document.getElementById('tvCountTotal').textContent = countries.length;
+
+  // Total blocs = countries + Rest of the World
+  const totalBlocs = countries.length + 1;
+  document.getElementById('tvCountTotal').textContent = totalBlocs;
 
   buildTVSelect();
   renderLeaderboard();
@@ -67,49 +76,134 @@ function lockJuryScores() {
   showToast('Jury scores locked! Televote begins 🎉', 'success');
 }
 
+// ── Total points still to be distributed from pending blocs ──
+// = PTS_PER_BLOC (58) × remaining blocs
+function maxPtsStillAvailable() {
+  const pendingCountries = countries.filter(c => !c.tvDone).length;
+  const rowDone          = window._rowDone || false;
+  const pendingBlocs     = pendingCountries + (rowDone ? 0 : 1);
+  return pendingBlocs * PTS_PER_BLOC;
+}
+
 // ── Build the country dropdown for TV input ───────────────────
 function buildTVSelect() {
   const sel = document.getElementById('tvCountrySelect');
   sel.innerHTML = '';
+
   const pending = countries.filter(c => !c.tvDone);
-  if (pending.length === 0) {
+
+  if (pending.length === 0 && (window._rowDone || false)) {
     sel.innerHTML = '<option value="">All televotes entered!</option>';
+    updateNeedsToLead();
     endShow();
     return;
   }
+
   pending.forEach(c => {
-    const idx = countries.indexOf(c);
     const opt = document.createElement('option');
-    opt.value  = idx;
+    opt.value  = countries.indexOf(c);
     opt.textContent = `${c.flag} ${c.country}`;
     sel.appendChild(opt);
   });
+
+  // Rest of the World option (always last)
+  if (!(window._rowDone || false)) {
+    const opt = document.createElement('option');
+    opt.value = 'row';
+    opt.textContent = '🌍 Rest of the World';
+    sel.appendChild(opt);
+  }
+
+  updateNeedsToLead();
 }
 
 // ── Add a televote result ─────────────────────────────────────
 function addTVPoints() {
   const sel = document.getElementById('tvCountrySelect');
-  const idx = parseInt(sel.value);
+  const val = sel.value;
   const pts = parseInt(document.getElementById('tvPtsInput').value);
 
-  if (isNaN(idx) || idx < 0) { showToast('Select a country', 'warn'); return; }
+  if (!val) { showToast('Select a country', 'warn'); return; }
   if (isNaN(pts) || pts < 0) { showToast('Enter valid points', 'warn'); return; }
 
   prevRanks = getRankMap();
-  countries[idx].tv     = pts;
-  countries[idx].tvDone = true;
+
+  let label;
+  if (val === 'row') {
+    window._rowDone = true;
+    window._rowPts  = pts;
+    label = '🌍 Rest of the World';
+  } else {
+    const idx = parseInt(val);
+    countries[idx].tv     = pts;
+    countries[idx].tvDone = true;
+    label = `${countries[idx].flag} ${countries[idx].country}`;
+  }
 
   document.getElementById('tvPtsInput').value = '';
 
-  const done = countries.filter(c => c.tvDone).length;
-  document.getElementById('tvCountDone').textContent = done;
+  // Update counter
+  const countryDone = countries.filter(c => c.tvDone).length;
+  const rowDone     = window._rowDone ? 1 : 0;
+  const totalDone   = countryDone + rowDone;
+  const totalBlocs  = countries.length + 1;
+  document.getElementById('tvCountDone').textContent = totalDone;
   document.getElementById('progressBar').style.width =
-    Math.round(done / countries.length * 100) + '%';
+    Math.round(totalDone / totalBlocs * 100) + '%';
 
   buildTVSelect();
   renderLeaderboard();
   updateStats();
-  showToast(`${countries[idx].flag} ${countries[idx].country}: +${pts} televote pts`, 'success');
+  showToast(`${label}: +${pts} pts`, 'success');
+}
+
+// ── "Needs X to lead" hint ────────────────────────────────────
+function updateNeedsToLead() {
+  const hint = document.getElementById('needsToLeadHint');
+  if (!hint) return;
+
+  const sel = document.getElementById('tvCountrySelect');
+  const val = sel.value;
+
+  if (!val || val === 'row' || !countries.length) {
+    hint.style.display = 'none';
+    return;
+  }
+
+  const idx      = parseInt(val);
+  const selected = countries[idx];
+  const leader   = [...countries].sort((a, b) => (b.jury + b.tv) - (a.jury + a.tv))[0];
+
+  if (!selected || !leader) { hint.style.display = 'none'; return; }
+
+  const selectedTotal = selected.jury + selected.tv;
+  const leaderTotal   = leader.jury + leader.tv;
+  const maxAvail      = maxPtsStillAvailable();
+
+  // Already leading
+  if (selected.country === leader.country) {
+    hint.style.display = 'flex';
+    hint.innerHTML = `<span class="needs-lead-icon">👑</span>
+      <span><strong>${selected.flag} ${selected.country}</strong> is currently leading with <strong>${selectedTotal} pts</strong></span>`;
+    hint.className = 'needs-lead-hint leading';
+    return;
+  }
+
+  const gap    = leaderTotal - selectedTotal + 1;
+  const canWin = gap <= maxAvail;
+
+  hint.style.display = 'flex';
+  hint.className = `needs-lead-hint ${canWin ? 'can-win' : 'cannot-win'}`;
+
+  if (canWin) {
+    hint.innerHTML = `<span class="needs-lead-icon">⚡</span>
+      <span><strong>${selected.flag} ${selected.country}</strong> needs <strong>${gap} more pts</strong> to lead
+      — <strong>${maxAvail} pts</strong> still to be distributed</span>`;
+  } else {
+    hint.innerHTML = `<span class="needs-lead-icon">💔</span>
+      <span><strong>${selected.flag} ${selected.country}</strong> needs <strong>${gap} pts</strong> to lead
+      but only <strong>${maxAvail} pts</strong> remain to be distributed</span>`;
+  }
 }
 
 // ── Tab switch ────────────────────────────────────────────────
@@ -139,7 +233,7 @@ function getRankMap() {
 
 // ── Render leaderboard ────────────────────────────────────────
 function renderLeaderboard() {
-  const sorted  = [...countries].sort((a, b) => getScore(b) - getScore(a));
+  const sorted   = [...countries].sort((a, b) => getScore(b) - getScore(a));
   const maxScore = Math.max(getScore(sorted[0]) || 1, 1);
   const wrap     = document.getElementById('leaderboard');
 
@@ -190,28 +284,35 @@ function renderLeaderboard() {
 function updateStats() {
   const sorted = [...countries].sort((a, b) => (b.jury + b.tv) - (a.jury + a.tv));
   if (sorted.length) {
-    document.getElementById('statLeader').textContent   = sorted[0].flag;
+    document.getElementById('statLeader').textContent    = sorted[0].flag;
     document.getElementById('statLeaderPts').textContent = sorted[0].jury + sorted[0].tv;
   }
-  document.getElementById('statRemain').textContent = countries.filter(c => !c.tvDone).length;
+  const pendingCountries = countries.filter(c => !c.tvDone).length;
+  const rowDone          = window._rowDone || false;
+  document.getElementById('statRemain').textContent  = pendingCountries + (rowDone ? 0 : 1);
+  document.getElementById('statMaxPts').textContent  = maxPtsStillAvailable();
 }
 
 // ── Show is over ──────────────────────────────────────────────
 function endShow() {
   phase = 'done';
-  document.getElementById('phaseBadge').textContent  = '🏆 Final Results';
-  document.getElementById('statusDot').className     = 'status-dot done';
-  document.getElementById('statusText').textContent  = 'Complete';
+  document.getElementById('phaseBadge').textContent = '🏆 Final Results';
+  document.getElementById('statusDot').className    = 'status-dot done';
+  document.getElementById('statusText').textContent = 'Complete';
+  const hint = document.getElementById('needsToLeadHint');
+  if (hint) hint.style.display = 'none';
   showToast('All televotes in — final results! 🎉', 'success');
 }
 
 // ── Reset ─────────────────────────────────────────────────────
 function resetApp() {
   if (!confirm('Reset everything and start over?')) return;
-  countries  = [];
-  prevRanks  = {};
-  currentTab = 'total';
-  phase      = 'setup';
+  countries       = [];
+  prevRanks       = {};
+  currentTab      = 'total';
+  phase           = 'setup';
+  window._rowDone = false;
+  window._rowPts  = 0;
 
   document.getElementById('setupPanel').style.display = 'block';
   document.getElementById('tallyPanel').style.display = 'none';
@@ -220,6 +321,9 @@ function resetApp() {
   document.getElementById('progressBar').style.width  = '0%';
   document.getElementById('statusDot').className      = 'status-dot live';
   document.getElementById('statusText').textContent   = 'Live';
+
+  const hint = document.getElementById('needsToLeadHint');
+  if (hint) hint.style.display = 'none';
 
   buildJuryForm();
 }
