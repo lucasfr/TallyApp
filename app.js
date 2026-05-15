@@ -3,6 +3,10 @@
 //  Reads config from config.js (TALLY_CONFIG).
 // ============================================================
 
+// ── Voting constants ──────────────────────────────────────────
+// (15 national juries + 15 national TVs + 5 regional TVs + 1 RoW) × 58 pts each
+const TOTAL_TV_POOL = (15 + 15 + 5 + 1) * (12 + 10 + 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1); // 36 × 58 = 2,088
+
 // ── State ────────────────────────────────────────────────────
 let countries  = [];
 let prevRanks  = {};
@@ -164,6 +168,15 @@ function lockJuryScores() {
   showToast('Jury scores locked! Televote begins 🎉', 'success');
 }
 
+// ── Points already distributed ───────────────────────────────
+function tvPointsAwarded() {
+  return countries.reduce((sum, c) => sum + (c.tvDone ? c.tv : 0), 0);
+}
+
+function tvPointsRemaining() {
+  return TOTAL_TV_POOL - tvPointsAwarded();
+}
+
 // ── Build the country dropdown for TV input ───────────────────
 function buildTVSelect() {
   const sel = document.getElementById('tvCountrySelect');
@@ -247,7 +260,6 @@ function updateNeedsToLead() {
   }
 
   const gap    = leaderTotal - selectedTotal + 1;
-  // Can they still win? Only if they haven't scored yet (tvDone = false)
   const canWin = !selected.tvDone;
 
   hint.style.display = 'flex';
@@ -255,7 +267,7 @@ function updateNeedsToLead() {
 
   if (canWin) {
     hint.innerHTML = `<span class="needs-lead-icon">⚡</span>
-      <span><strong>${selected.flag} ${selected.country}</strong> needs <strong>${gap} more pts</strong> in their televote to lead
+      <span><strong>${selected.flag} ${selected.country}</strong> needs <strong>${gap} more pts</strong> to lead
       — <strong>${remaining}</strong> result${remaining !== 1 ? 's' : ''} still to come</span>`;
   } else {
     hint.innerHTML = `<span class="needs-lead-icon">💔</span>
@@ -351,6 +363,7 @@ function updateStats() {
   }
   document.getElementById('statScored').textContent  = scored;
   document.getElementById('statRemain').textContent  = pending;
+  document.getElementById('statPtsLeft').textContent = tvPointsRemaining().toLocaleString();
 }
 
 // ── Show is over ──────────────────────────────────────────────
