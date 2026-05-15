@@ -68,9 +68,7 @@
       <div class="status-top">
         <div class="tv-counter">
           <div class="tv-counter-icon">📺</div>
-          <div class="tv-counter-text">
-            Televote: <span id="tvCountDone">0</span> / <span id="tvCountTotal">0</span> announced
-          </div>
+          <div class="tv-counter-text">Televote results coming in</div>
         </div>
         <div class="status-pill">
           <div class="status-dot live" id="statusDot"></div>
@@ -90,12 +88,12 @@
           <div class="stat-label">Top pts</div>
         </div>
         <div class="stat-card">
-          <div class="stat-num" id="statRemain">0</div>
-          <div class="stat-label">Blocs left</div>
+          <div class="stat-num" id="statScored">0</div>
+          <div class="stat-label">Scored</div>
         </div>
         <div class="stat-card">
-          <div class="stat-num avail" id="statMaxPts">0</div>
-          <div class="stat-label">Pts avail.</div>
+          <div class="stat-num avail" id="statRemain">0</div>
+          <div class="stat-label">Remaining</div>
         </div>
       </div>
     </div>
@@ -104,11 +102,11 @@
     <div class="glass-card">
       <div class="section-title">
         <span class="section-title-accent" style="background:var(--blue)"></span>
-        Add televote points
+        Add televote score
       </div>
       <div class="tv-input-row">
         <select class="tv-select" id="tvCountrySelect" onchange="updateNeedsToLead()"></select>
-        <input type="number" min="0" max="999" placeholder="Pts"
+        <input type="number" min="0" max="9999" placeholder="Pts"
                class="tv-pts-input score-field" id="tvPtsInput" inputmode="numeric"
                style="width:90px">
         <button class="btn btn-blue" onclick="addTVPoints()">Add</button>
