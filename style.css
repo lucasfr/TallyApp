@@ -439,6 +439,8 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
 .needs-lead-hint strong { font-weight: 700; }
 .needs-lead-hint.can-win    { background: rgba(68,172,255,0.10); border: 1px solid rgba(68,172,255,0.25); color: var(--text); }
 .needs-lead-hint.can-win strong { color: var(--blue); }
+.needs-lead-hint.out-of-reach { background: rgba(255,165,0,0.10); border: 1px solid rgba(255,165,0,0.28); color: var(--text-muted); }
+.needs-lead-hint.out-of-reach strong { color: #e07000; }
 .needs-lead-hint.cannot-win { background: rgba(254,158,199,0.12); border: 1px solid rgba(254,158,199,0.30); color: var(--text-muted); }
 .needs-lead-hint.cannot-win strong { color: #c2185b; }
 .needs-lead-hint.leading    { background: rgba(249,246,196,0.5); border: 1px solid rgba(200,190,80,0.30); color: var(--text); }

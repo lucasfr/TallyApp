@@ -259,18 +259,27 @@ function updateNeedsToLead() {
     return;
   }
 
-  const gap    = leaderTotal - selectedTotal + 1;
-  const canWin = !selected.tvDone;
+  const gap        = leaderTotal - selectedTotal + 1;
+  const poolLeft    = tvPointsRemaining();
+  const alreadyIn   = selected.tvDone;
+  const canWin      = !alreadyIn && gap <= poolLeft;
+  const outOfReach  = !alreadyIn && gap > poolLeft;
 
   hint.style.display = 'flex';
-  hint.className = `needs-lead-hint ${canWin ? 'can-win' : 'cannot-win'}`;
 
   if (canWin) {
+    hint.className = 'needs-lead-hint can-win';
     hint.innerHTML = `<span class="needs-lead-icon">⚡</span>
       <span><strong>${selected.flag} ${selected.country}</strong> needs <strong>${gap} more pts</strong> to lead
       — <strong>${remaining}</strong> result${remaining !== 1 ? 's' : ''} still to come</span>`;
-  } else {
+  } else if (outOfReach) {
+    hint.className = 'needs-lead-hint out-of-reach';
     hint.innerHTML = `<span class="needs-lead-icon">💔</span>
+      <span><strong>${selected.flag} ${selected.country}</strong> needs <strong>${gap} pts</strong> to lead
+      but only <strong>${poolLeft}</strong> pts remain in the pool</span>`;
+  } else {
+    hint.className = 'needs-lead-hint cannot-win';
+    hint.innerHTML = `<span class="needs-lead-icon">😞</span>
       <span><strong>${selected.flag} ${selected.country}</strong> needed <strong>${gap} more pts</strong> to lead
       but their televote is already in</span>`;
   }
